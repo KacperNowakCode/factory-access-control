@@ -38,12 +38,14 @@ def register_user():
     photo_bytes = BytesIO(photo.read())
     photo.seek(0)
     
-    encoding, _ = get_face_data(photo_bytes)
+    # Pobranie danych twarzy
+    encoding_pickle, coords = get_face_data(photo_bytes)
     
-    if encoding is None:
+    if encoding_pickle is None:
         return jsonify({"error": "Nie wykryto twarzy. Użyj wyraźniejszego zdjęcia."}), 400
 
     photo_filename = f"{uuid.uuid4()}.jpg"
+    photo.seek(0)
     photo.save(os.path.join(FACES_FOLDER, photo_filename))
 
     qr_data = str(uuid.uuid4())[:8]
@@ -53,7 +55,7 @@ def register_user():
     new_user = User(
         name=name, 
         qr_code_data=qr_data, 
-        face_encoding=encoding, 
+        face_encoding=encoding_pickle, 
         photo_path=f"/static/faces/{photo_filename}"
     )
     session.add(new_user)
@@ -70,59 +72,76 @@ def verify_entry():
     session = Session()
     user = session.query(User).filter_by(qr_code_data=qr_input).first()
 
+    # Przypadek 1: Nieznany kod QR
     if not user:
-        # Zapisz incydent
         filename = f"unknown_{uuid.uuid4()}.jpg"
         camera_image.seek(0)
         camera_image.save(os.path.join(INCIDENT_FOLDER, filename))
         
+        # Pobieramy współrzędne dla czerwonej ramki
+        camera_image.seek(0)
+        _, unknown_coords = get_face_data(camera_image)
+        
         session.add(AccessLog(user_name="Nieznany QR", status="DENIED_QR", snapshot_path=filename))
         session.commit()
-        return jsonify({"status": "denied", "reason": "Zły kod QR", "score": 0}), 403
+        session.close()
+        
+        return jsonify({
+            "status": "denied", 
+            "reason": "Zły kod QR", 
+            "score": 0,
+            "face_rect": unknown_coords
+        }), 403
 
-    # Weryfikacja
-    camera_image.seek(0)
-    match, score, face_rect = verify_face(user.face_encoding, camera_image)
+    # Przypadek 2: Użytkownik znaleziony - weryfikacja twarzy
     
-    # --- POPRAWKA: Konwersja typów NumPy na Python int ---
+    # WAŻNE: Zapisujemy imię do zmiennej póki sesja jest otwarta!
+    user_name_str = user.name 
+    
+    camera_image.seek(0)
+    match, score, face_rect_dict = verify_face(user.face_encoding, camera_image)
+    
+    # Konwersja prostokąta twarzy na format JSON
     rect_data = None
-    if face_rect is not None:
+    if face_rect_dict:
         rect_data = {
-            "x": int(face_rect[0]), # rzutowanie na int
-            "y": int(face_rect[1]), # rzutowanie na int
-            "w": int(face_rect[2]), # rzutowanie na int
-            "h": int(face_rect[3])  # rzutowanie na int
+            "x": int(face_rect_dict['x']),
+            "y": int(face_rect_dict['y']),
+            "w": int(face_rect_dict['w']),
+            "h": int(face_rect_dict['h'])
         }
     
-    # Konwersja score (pewności) na zwykły int lub float
     safe_score = int(score) if score is not None else 0
-    # -----------------------------------------------------
 
     if match:
-        session.add(AccessLog(user_name=user.name, status="SUCCESS"))
+        session.add(AccessLog(user_name=user_name_str, status="SUCCESS"))
         session.commit()
+        session.close() # Zamykamy sesję DOPIERO TUTAJ
+        
         return jsonify({
             "status": "success", 
-            "user": user.name, 
-            "score": safe_score,     # Używamy przekonwertowanej zmiennej
+            "user": user_name_str, # Używamy zmiennej string, nie obiektu bazy
+            "score": safe_score,
             "face_rect": rect_data
         })
     else:
         timestamp = datetime.datetime.now().strftime("%H%M%S")
-        filename = f"fail_{user.name}_{timestamp}.jpg"
+        filename = f"fail_{user_name_str}_{timestamp}.jpg"
         camera_image.seek(0)
         camera_image.save(os.path.join(INCIDENT_FOLDER, filename))
         
         session.add(AccessLog(
-            user_name=user.name, 
+            user_name=user_name_str, 
             status="DENIED_FACE", 
             snapshot_path=filename
         ))
         session.commit()
+        session.close() # Zamykamy sesję DOPIERO TUTAJ
+        
         return jsonify({
             "status": "denied", 
             "reason": f"Niska zgodność ({safe_score}%)", 
-            "score": safe_score,     # Używamy przekonwertowanej zmiennej
+            "score": safe_score,
             "face_rect": rect_data
         }), 403
 
@@ -130,7 +149,9 @@ def verify_entry():
 def get_users():
     session = Session()
     users = session.query(User).all()
+    # Kopiujemy dane do listy słowników przed zamknięciem sesji
     result = [{"id": u.id, "name": u.name, "qr": u.qr_code_data, "photo": u.photo_path} for u in users]
+    session.close()
     return jsonify(result)
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
@@ -140,18 +161,21 @@ def delete_user(user_id):
     if user:
         session.delete(user)
         session.commit()
+    session.close()
     return jsonify({"message": "Usunięto"})
 
 @app.route('/api/logs', methods=['GET'])
 def get_logs():
     session = Session()
     logs = session.query(AccessLog).order_by(AccessLog.timestamp.desc()).limit(50).all()
+    # Kopiujemy dane do listy słowników przed zamknięciem sesji
     result = [{
         "time": str(l.timestamp), 
         "user": l.user_name, 
         "status": l.status, 
         "snapshot": f"/static/incidents/{l.snapshot_path}" if l.snapshot_path else None
     } for l in logs]
+    session.close()
     return jsonify(result)
 
 if __name__ == '__main__':

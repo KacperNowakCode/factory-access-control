@@ -5,84 +5,71 @@
     <title>System Kontroli Dostępu</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <style>
-        .step-container { display: none; text-align: center; }
-        .step-container.active { display: block; }
-        #qr-reader { width: 300px; margin: 0 auto; }
-        .photo-preview { max-width: 80px; max-height: 80px; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        .btn-delete { background-color: #ff4d4d; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px;}
-        .file-upload-box { margin-top: 20px; padding: 15px; border: 2px dashed #aaa; background: #fff; }
-    </style>
 </head>
 <body>
+
     <div class="nav">
-        <button onclick="location.reload()">Reset Bramki</button>
+        <button onclick="location.reload()">Reset / Wyloguj</button>
         <button onclick="toggleAdmin()">Panel Administratora</button>
     </div>
 
     <div id="gate-interface" class="container">
         
         <div id="step-1" class="step-container active">
-            <h2>Krok 1/2: Zidentyfikuj się (QR)</h2>
-            
+            <h2>Krok 1: Zeskanuj QR</h2>
             <div id="qr-reader"></div>
-            <p>Pokaż kod do kamery...</p>
-
             <div class="file-upload-box">
-                <p>...lub wgraj plik z kodem QR:</p>
-                <input type="file" id="qr-file-input" accept="image/*">
+                lub wgraj plik: <input type="file" id="qr-file-input" accept="image/*">
             </div>
         </div>
 
         <div id="step-2" class="step-container">
-            <h2>Krok 2/2: Weryfikacja Twarzy</h2>
-            <p>Kod: <strong id="detected-qr-code">---</strong></p>
-            <div class="video-container">
-                <video id="face-video" width="320" height="240" autoplay></video>
-                <canvas id="face-canvas" width="320" height="240" style="display:none;"></canvas>
+            <h2>Krok 2: Weryfikacja Twarzy</h2>
+            <p>ID: <strong id="detected-qr-code">---</strong></p>
+            
+            <div class="video-wrapper">
+                <video id="face-video" autoplay playsinline></video>
+                <canvas id="face-canvas" width="640" height="480"></canvas>
             </div>
+
             <br>
-            <button onclick="captureAndVerify()">WERYFIKUJ MNIE</button>
-            <button onclick="resetProcess()" style="background:#666;">Wróć</button>
+            <button onclick="captureAndVerify()" class="btn-big">WERYFIKUJ MNIE</button>
+            <button onclick="resetProcess()" class="btn-cancel">Anuluj</button>
         </div>
 
         <div id="step-3" class="step-container">
             <div id="final-result" class="result-box"></div>
-            <button onclick="resetProcess()" style="margin-top:20px;">Następna osoba</button>
+            <button onclick="resetProcess()" class="btn-next">Następna osoba</button>
         </div>
+
     </div>
 
-    <div id="admin-panel" class="container" style="display:none; max-width: 900px;">
+    <div id="admin-panel" class="container" style="display:none;">
         <h2>Panel Administratora</h2>
         
         <div class="card">
             <h3>Dodaj Pracownika</h3>
             <input type="text" id="newName" placeholder="Imię i Nazwisko">
             <input type="file" id="newPhoto" accept="image/*">
-            <button onclick="registerUser()">Dodaj Pracownika</button>
+            <button onclick="registerUser()" class="btn-add">Dodaj</button>
         </div>
 
         <div class="split">
-            <div class="list-box" style="flex: 2;">
-                <h3>Baza Pracowników</h3>
-                <div style="overflow-x:auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>FOTO</th>
-                                <th>IMIĘ</th>
-                                <th>QR</th>
-                                <th>AKCJA</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody"></tbody>
-                    </table>
-                </div>
+            <div class="list-box" style="flex:2;">
+                <h3>Pracownicy</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Foto</th>
+                            <th>Nazwisko</th>
+                            <th style="width: 60px;">QR</th>
+                            <th style="width: 50px;">Akcja</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
             </div>
-            <div class="list-box" style="flex: 1;">
+            <div class="list-box" style="flex:1;">
                 <h3>Logi</h3>
                 <ul id="logList"></ul>
             </div>

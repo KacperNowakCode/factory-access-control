@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+*.sqlite3
+backend/faceid_system.db
+backend/static/faces/*
+backend/static/incidents/*
+backend/static/qrcodes/*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+photos_to_import/*

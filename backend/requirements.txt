@@ -3,5 +3,5 @@ flask-cors
 sqlalchemy
 opencv-python
 qrcode
+face-recognition
 numpy
-pillow

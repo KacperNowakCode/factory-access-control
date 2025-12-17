@@ -1,79 +1,79 @@
 import cv2
-import qrcode
-import os
+import face_recognition
 import numpy as np
+import os
+import qrcode
+import pickle
 
 def generate_qr(data, output_folder):
-    """Generuje plik QR code"""
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(data)
     qr.make(fit=True)
     img = qr.make_image(fill='black', back_color='white')
-    
     filename = f"{data}.png"
-    path = os.path.join(output_folder, filename)
-    img.save(path)
+    img.save(os.path.join(output_folder, filename))
     return filename
 
 def get_face_data(image_source):
-    """
-    Zwraca: (wektor_obrazu, współrzędne_twarzy)
-    Współrzędne to krotka: (x, y, w, h)
-    """
-    img = None
+    # Wczytanie
     if hasattr(image_source, 'read'):
-        file_bytes = np.frombuffer(image_source.read(), np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE)
         image_source.seek(0)
+        img = face_recognition.load_image_file(image_source)
     else:
-        img = cv2.imread(image_source, cv2.IMREAD_GRAYSCALE)
+        img = face_recognition.load_image_file(image_source)
+
+    # 1. Znajdź twarz
+    face_locations = face_recognition.face_locations(img)
     
-    if img is None:
+    if not face_locations:
         return None, None
 
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    # Parametry scaleFactor=1.1, minNeighbors=5 (zwiększone dla pewności)
-    faces = face_cascade.detectMultiScale(img, 1.1, 5)
+    # Pobieramy pierwszą twarz
+    top, right, bottom, left = face_locations[0]
     
-    if len(faces) == 0:
-        return None, None
+    # Format (x, y, w, h)
+    coords = {
+        "x": left,
+        "y": top,
+        "w": right - left,
+        "h": bottom - top
+    }
 
-    # Bierzemy największą twarz (główną)
-    x, y, w, h = faces[0]
-    face_roi = img[y:y+h, x:x+w]
-    face_roi = cv2.resize(face_roi, (100, 100))
+    # 2. Zakoduj cechy
+    face_encodings = face_recognition.face_encodings(img, face_locations)
+    
+    if not face_encodings:
+        return None, coords
 
-    return face_roi.flatten(), (x, y, w, h)
+    return pickle.dumps(face_encodings[0]), coords
 
-def verify_face(known_encoding, unknown_image_file):
-    """
-    Porównuje twarze i zwraca: (czy_sukces, procent_zgodności, koordynaty_twarzy)
-    """
-    unknown_encoding, face_location = get_face_data(unknown_image_file)
+def verify_face(known_encoding_pickle, unknown_image_file):
+    # Pobierz twarz z kamery
+    unknown_encoding_packed, coords = get_face_data(unknown_image_file)
 
-    if unknown_encoding is None:
+    # Jeśli nie wykryto twarzy na zdjęciu
+    if coords is None:
         return False, 0, None
 
-    if known_encoding is None:
-        return False, 0, face_location
+    # Jeśli nie ma wzorca (nieznany QR), ale twarz jest widoczna
+    if known_encoding_pickle is None:
+        return False, 0, coords
 
-    # Oblicz różnicę (MSE)
-    err = np.sum((known_encoding.astype("float") - unknown_encoding.astype("float")) ** 2)
-    err /= float(known_encoding.shape[0])
-    
-    # --- KALIBRACJA NA 90% ---
-    # MSE=0 to idealna kopia (100%). MSE=3000 to już spora różnica.
-    # Wzór: Score = 100 - (Błąd / Dzielnik)
-    # Dobieramy dzielnik tak, aby próg akceptacji wypadał w okolicy 90%
-    
-    # Im mniejszy błąd, tym lepiej.
-    # Zakładamy, że błąd 2500 jest "graniczny".
-    # 2500 / 250 = 10.  100 - 10 = 90%.
-    
-    score = 100 - (err / 250)
-    score = max(0, min(100, score)) # Ogranicz do zakresu 0-100%
+    try:
+        known_encoding = pickle.loads(known_encoding_pickle)
+        
+        if unknown_encoding_packed:
+            unknown_encoding = pickle.loads(unknown_encoding_packed)
+            
+            # Porównanie
+            distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
+            score = int((1.0 - distance) * 100)
+            is_match = distance < 0.5 # Próg sukcesu
 
-    # Wymagamy >= 90% (zgodnie z dokumentacją)
-    is_match = score >= 90.0
-    
-    return is_match, int(score), face_location
+            return is_match, score, coords
+        else:
+            return False, 0, coords
+            
+    except Exception as e:
+        print(f"Błąd AI: {e}")
+        return False, 0, coords
