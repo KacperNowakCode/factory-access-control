@@ -178,5 +178,9 @@ def get_logs():
     session.close()
     return jsonify(result)
 
+@app.route('/')
+def home():
+    return app.send_static_file('index.html')
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
