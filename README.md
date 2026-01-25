@@ -46,14 +46,13 @@ Gdy dlib jest już zainstalowany:
 ---
 
 ## 5. Uruchomienie aplikacji
-* **backend:**
+
 ```bash
+cd backend
 python app.py
 ```
-* **frontend:**
-```bash
-python -m http.server 8000
-```
+
+Aplikacja będzie dostępna pod adresem: **http://localhost:5000**
 ---
 
 ## 🔧 TROUBLESHOOTING

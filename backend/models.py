@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, LargeBinary # <--- Tu brakowało LargeBinary
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, LargeBinary
 from sqlalchemy.orm import declarative_base
 import datetime
 

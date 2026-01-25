@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, User, AccessLog
@@ -13,6 +13,14 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BACKEND_DIR, 'static')
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='/static')
+app.secret_key = 'factory_access_control_secret_key_2026'
+
+# Konfiguracja sesji - trwała sesja na 30 dni
+app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
+app.config['SESSION_COOKIE_SECURE'] = False  # Zmień na True w produkcji z HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 CORS(app)
 
 DB_FILE = f"sqlite:///{os.path.join(BACKEND_DIR, 'faceid_system.db')}"
@@ -27,6 +35,17 @@ os.makedirs(FACES_FOLDER, exist_ok=True)
 engine = create_engine(DB_FILE)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
+
+# Decorator do ochrony adminowych endpointów
+def admin_required(f):
+    """Decorator do ochrony adminowych endpointów"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in', False):
+            return jsonify({"error": "Brak autoryzacji"}), 403
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/api/register', methods=['POST'])
 def register_user():
@@ -146,41 +165,91 @@ def verify_entry():
         }), 403
 
 @app.route('/api/users', methods=['GET'])
+@admin_required
 def get_users():
-    session = Session()
-    users = session.query(User).all()
+    session_db = Session()
+    users = session_db.query(User).all()
     # Kopiujemy dane do listy słowników przed zamknięciem sesji
     result = [{"id": u.id, "name": u.name, "qr": u.qr_code_data, "photo": u.photo_path} for u in users]
-    session.close()
+    session_db.close()
     return jsonify(result)
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
+@admin_required
 def delete_user(user_id):
-    session = Session()
-    user = session.query(User).get(user_id)
+    session_db = Session()
+    user = session_db.query(User).get(user_id)
     if user:
-        session.delete(user)
-        session.commit()
-    session.close()
+        session_db.delete(user)
+        session_db.commit()
+    session_db.close()
     return jsonify({"message": "Usunięto"})
 
 @app.route('/api/logs', methods=['GET'])
+@admin_required
 def get_logs():
-    session = Session()
-    logs = session.query(AccessLog).order_by(AccessLog.timestamp.desc()).limit(50).all()
+    session_db = Session()
+    logs = session_db.query(AccessLog).order_by(AccessLog.timestamp.desc()).limit(50).all()
     # Kopiujemy dane do listy słowników przed zamknięciem sesji
     result = [{
+        "id": l.id,
         "time": str(l.timestamp), 
         "user": l.user_name, 
         "status": l.status, 
         "snapshot": f"/static/incidents/{l.snapshot_path}" if l.snapshot_path else None
     } for l in logs]
-    session.close()
+    session_db.close()
     return jsonify(result)
+
+@app.route('/api/logs/<int:log_id>', methods=['GET'])
+@admin_required
+def get_log_detail(log_id):
+    """Pobranie szczegółów konkretnego logu z snapshot'em"""
+    session_db = Session()
+    log = session_db.query(AccessLog).filter(AccessLog.id == log_id).first()
+    session_db.close()
+    
+    if not log:
+        return jsonify({"error": "Log nie znaleziony"}), 404
+    
+    return jsonify({
+        "id": log.id,
+        "time": str(log.timestamp),
+        "user": log.user_name,
+        "status": log.status,
+        "snapshot": f"/static/incidents/{log.snapshot_path}" if log.snapshot_path else None
+    })
 
 @app.route('/')
 def home():
     return app.send_static_file('index.html')
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Login endpoint dla panelu administratora"""
+    data = request.get_json()
+    username = data.get('username', '')
+    password = data.get('password', '')
+    
+    # Walidacja (admin/admin)
+    if username == 'admin' and password == 'admin':
+        session.permanent = True  # Ustawia trwałą sesję
+        session['admin_logged_in'] = True
+        return jsonify({"message": "Zalogowano", "success": True})
+    else:
+        return jsonify({"message": "Błędne dane logowania", "success": False}), 401
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    """Logout endpoint"""
+    session.pop('admin_logged_in', None)
+    return jsonify({"message": "Wylogowano"})
+
+@app.route('/api/check-admin', methods=['GET'])
+def check_admin():
+    """Sprawdzenie, czy użytkownik jest zalogowany"""
+    is_logged = session.get('admin_logged_in', False)
+    return jsonify({"admin_logged_in": is_logged})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
