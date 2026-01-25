@@ -55,7 +55,7 @@ python app.py
 Aplikacja będzie dostępna pod adresem: **http://localhost:5000**
 ---
 
-## 🔧 TROUBLESHOOTING
+## TROUBLESHOOTING
 
 **PowerShell blokuje aktywację venv (czerwony błąd "running scripts is disabled")**<br>
 Rozwiązanie: Wpisz poniższą komendę w PowerShellu i zatwierdź (T/Y):<br>
