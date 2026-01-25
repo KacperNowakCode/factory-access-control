@@ -312,6 +312,203 @@
             display: none;
         }
 
+        /* Login Modal */
+        #login-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #login-modal.active {
+            display: flex;
+        }
+
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-container h2 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #2d3748;
+        }
+
+        .login-container .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .login-container input:focus {
+            outline: none;
+            border-color: #2d3748;
+        }
+
+        .login-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .login-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-buttons .btn-submit {
+            background: #2d3748;
+            color: white;
+        }
+
+        .login-buttons .btn-submit:hover {
+            background: #1a202c;
+        }
+
+        .login-buttons .btn-cancel {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .login-buttons .btn-cancel:hover {
+            background: #cbd5e0;
+        }
+
+        .login-error {
+            color: #e53e3e;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        /* Log Detail Modal */
+        #log-detail-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #log-detail-modal.active {
+            display: flex;
+        }
+
+        .log-detail-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .log-detail-container h2 {
+            margin-bottom: 1.5rem;
+            color: #2d3748;
+        }
+
+        .log-detail-info {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .log-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .log-detail-row strong {
+            color: #2d3748;
+        }
+
+        .log-detail-row span {
+            color: #4a5568;
+        }
+
+        .log-detail-snapshot {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background: #f7fafc;
+            padding: 1rem;
+        }
+
+        .log-detail-snapshot img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .log-detail-snapshot.no-image {
+            text-align: center;
+            color: #a0aec0;
+            padding: 2rem;
+        }
+
+        .log-detail-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .log-detail-buttons button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .log-detail-buttons .btn-close {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .log-detail-buttons .btn-close:hover {
+            background: #cbd5e0;
+        }
+
         .admin-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -445,6 +642,13 @@
             background: white;
             border-left: 4px solid;
             font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .log-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .log-item.success {
@@ -490,7 +694,52 @@
         <div class="logo">System Kontroli Dostępu</div>
         <div class="nav-buttons">
             <button class="btn btn-secondary" onclick="location.reload()">Reset</button>
-            <button class="btn btn-primary" onclick="toggleAdmin()">Admin</button>
+            <button class="btn btn-primary" onclick="openLoginModal()">Admin</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal">
+        <div class="login-container">
+            <h2>Panel Administratora</h2>
+            <div class="form-group">
+                <input type="text" id="login-username" placeholder="Nazwa użytkownika">
+            </div>
+            <div class="form-group">
+                <input type="password" id="login-password" placeholder="Hasło">
+            </div>
+            <div class="login-error" id="login-error">Błędne dane logowania</div>
+            <div class="login-buttons">
+                <button class="btn-submit" onclick="attemptLogin()">Zaloguj</button>
+                <button class="btn-cancel" onclick="closeLoginModal()">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal -->
+    <div id="log-detail-modal">
+        <div class="log-detail-container">
+            <h2>Szczegóły Zdarzenia</h2>
+            <div class="log-detail-info">
+                <div class="log-detail-row">
+                    <strong>Czas:</strong>
+                    <span id="log-detail-time">-</span>
+                </div>
+                <div class="log-detail-row">
+                    <strong>Użytkownik:</strong>
+                    <span id="log-detail-user">-</span>
+                </div>
+                <div class="log-detail-row">
+                    <strong>Status:</strong>
+                    <span id="log-detail-status">-</span>
+                </div>
+            </div>
+            <div class="log-detail-snapshot" id="log-detail-snapshot-container">
+                <div class="no-image">Brak zdjęcia</div>
+            </div>
+            <div class="log-detail-buttons">
+                <button class="btn-close" onclick="closeLogDetailModal()">Zamknij</button>
+            </div>
         </div>
     </div>
 
@@ -559,8 +808,13 @@
     <!-- Admin Panel -->
     <div id="admin-panel" class="container">
         <div class="card">
-            <h1 class="step-title">Panel Administratora</h1>
-            <p class="step-subtitle">Zarządzaj pracownikami i przeglądaj logi</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h1 class="step-title" style="margin-bottom: 0;">Panel Administratora</h1>
+                    <p class="step-subtitle" style="margin-bottom: 0;">Zarządzaj pracownikami i przeglądaj logi</p>
+                </div>
+                <button class="btn btn-secondary" onclick="logoutAdmin()">Wyloguj</button>
+            </div>
 
             <!-- Add Employee Form -->
             <div class="admin-card" style="margin-bottom: 2rem;">
@@ -632,6 +886,55 @@
                 resetProcess();
             }
         }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.add('active');
+            document.getElementById('login-username').focus();
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.remove('active');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        async function attemptLogin() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    closeLoginModal();
+                    toggleAdmin();
+                } else {
+                    errorDiv.style.display = 'block';
+                    document.getElementById('login-password').value = '';
+                }
+            } catch (e) {
+                console.error(e);
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Allow Enter key to submit login
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal.classList.contains('active')) {
+                    attemptLogin();
+                }
+            }
+        });
 
         function showStep(n) {
             document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
@@ -775,7 +1078,7 @@
 
             const logs = await (await fetch(`${API_URL}/logs`)).json();
             document.getElementById('logList').innerHTML = logs.map(l => 
-                `<li class="log-item ${l.status==='SUCCESS'?'success':'denied'}">
+                `<li class="log-item ${l.status==='SUCCESS'?'success':'denied'}" onclick="openLogDetailModal(${l.id})" style="cursor: pointer;">
                     <span class="log-time">${l.time}</span> ${l.user}
                 </li>`
             ).join('');
@@ -801,6 +1104,49 @@
                 await fetch(`${API_URL}/users/${id}`, {method:'DELETE'}); 
                 loadAdminData(); 
             }
+        }
+
+        async function logoutAdmin() {
+            await fetch(`${API_URL}/logout`, {method:'POST'});
+            document.getElementById('admin-panel').style.display = 'none';
+            document.getElementById('gate-interface').style.display = 'block';
+            resetProcess();
+        }
+
+        // --- LOG DETAIL MODAL ---
+        async function openLogDetailModal(logId) {
+            try {
+                const response = await fetch(`${API_URL}/logs/${logId}`);
+                if (!response.ok) {
+                    alert("Błąd pobierania szczegółów logu");
+                    return;
+                }
+                
+                const log = await response.json();
+                
+                // Uzupełnij dane w modalu
+                document.getElementById('log-detail-time').innerText = log.time;
+                document.getElementById('log-detail-user').innerText = log.user || 'Nieznany';
+                document.getElementById('log-detail-status').innerText = log.status === 'SUCCESS' ? '✓ Dopuszczony' : '✕ Odmowa';
+                
+                // Ustaw snapshot jeśli istnieje
+                const snapshotContainer = document.getElementById('log-detail-snapshot-container');
+                if (log.snapshot) {
+                    snapshotContainer.innerHTML = `<img src="http://127.0.0.1:5000${log.snapshot}" alt="Snapshot zdarzenia">`;
+                } else {
+                    snapshotContainer.innerHTML = `<div class="no-image">Brak zdjęcia z kamery</div>`;
+                }
+                
+                // Pokaż modal
+                document.getElementById('log-detail-modal').classList.add('active');
+            } catch (e) {
+                console.error(e);
+                alert("Błąd pobierania szczegółów logu");
+            }
+        }
+
+        function closeLogDetailModal() {
+            document.getElementById('log-detail-modal').classList.remove('active');
         }
     </script>
 </body>

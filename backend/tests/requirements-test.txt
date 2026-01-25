@@ -1,0 +1,23 @@
+"""
+Test Requirements
+Pakiety niezbędne do uruchamiania testów
+"""
+
+# Kopía z głównego requirements.txt
+flask
+flask-cors
+sqlalchemy
+opencv-python
+qrcode
+face-recognition
+numpy
+
+# Dodatkowe pakiety do testów
+pytest>=7.0.0              # Test runner
+pytest-cov>=4.0.0          # Coverage
+pytest-timeout>=2.1.0      # Timeout dla testów
+pytest-xdist>=3.0.0        # Parallel execution
+
+# Opcjonalnie
+coverage>=6.0              # Coverage raporting
+pytest-mock>=3.0.0         # Mocking support
